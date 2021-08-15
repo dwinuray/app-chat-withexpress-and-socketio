@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket IO</title>
+
+
+    <style>
+        .hidden{
+
+            display: none
+        }
+
+        .left{
+
+            float: left;
+            width: 70%
+        }
+        .right{
+
+            float: left; 
+            width: 30%
+        }
+    </style>
+</head>
+<body>
+    
+
+    <div id="login">
+        <h2>Halo Selamat Datang</h2>
+        <form class="form-login">
+            <input type="text" name="nama" id="nama" placeholder="Nama user">
+            <button>Gabung</button>
+        </form>
+    </div>
+
+
+    <div id="forum" class="hidden">
+        <h4>Chat App with Socket.IO</h4>
+
+        <div class="left">
+            <form class="form-chat">
+                
+                <input type="text" id="text-box" placeholder="Pesan">
+                <button>Send</button>
+            </form>
+            <hr>
+            <ul id="chat"></ul>
+
+        </div>
+
+        <div class="right">
+            
+            <div id="online"></div>
+        </div>
+
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script>
+        
+        var socket = io();
+        var username = $('#nama');
+        var isTyping = false;
+
+        $('.form-chat').submit(function() {
+            
+            socket.emit('msg', username.val() + $('#text-box').val() );
+
+            $('#text-box').val('');
+            isTyping = false;
+
+
+            $('.temp').fadeOut();
+
+            return false;
+        });
+
+
+        // show new message
+        socket.on('msg', function( msg ) {
+
+            $('#chat').append($('<li>').text(msg + ' ' + Date() ));
+        });
+
+
+
+
+        $('.form-login').submit(function() {
+
+
+            if ( username.val() != "" ) {
+
+                socket.emit('registerUser', username.val());
+
+            } else {
+
+                alert("Mohon masukkan username anda !");
+            }
+            return false;
+        })
+
+
+
+        socket.on('responseRegister', function( status ) {
+
+            if ( status ) {
+
+                $('#login').addClass('hidden');
+                $('#forum').removeClass('hidden');
+            } else {
+
+                alert("Username telah digunkana !");
+            }
+        })
+
+
+        // show online status
+        socket.on('online-users', function( data ) {
+
+            let elementHTML = "";
+
+            data.forEach(function( value, index ) {
+
+                elementHTML += '<p id="user_'+ value +'">'+value+'</p>';
+            })
+
+            $('#online').html(elementHTML);
+        })
+
+
+        // remove online user
+        socket.on('disable-user', function( data ) {
+
+            $('#user_' + data).fadeOut();
+        })
+
+
+
+        // on type
+        $('#text-box').keyup(function() {
+
+            if ( isTyping == false ) {
+
+                socket.emit('newTyping', username.val() + " sedang mengetik . . .");
+            }
+
+            isTyping = true;
+        })
+
+
+        // add indicator
+        socket.on('newTyping', function( data ) {
+
+            $('#chat').append($('<li class="temp">').text(data));
+
+            // setInterval(100, () => {  });
+
+            setInterval( function() { 
+                
+                $('.temp').fadeOut(500, () => isTyping = false);        
+            }, 3000 );
+            
+        })
+    </script>
+</body>
+</html>
